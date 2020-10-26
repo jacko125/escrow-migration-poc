@@ -29,6 +29,8 @@ describe('Test', function() {
 
       const tx = await test.setData(timestamps, amounts);
       await tx.wait();
+      const receipt = await bre.ethers.provider.getTransactionReceipt(tx.hash)
+      console.log('setting 52 entries used:', receipt.gasUsed.toNumber(), 'gas')
     });
 
     it('should have registered timestamps', async () => {
