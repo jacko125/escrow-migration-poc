@@ -2,28 +2,15 @@ const { expect } = require('chai');
 const ethers = require('ethers');
 const bre = require('@nomiclabs/buidler');
 
-describe('Test 1', function() {
-  let sender, receiver;
+describe('Test', function() {
+  let test;
 
-  before('deploy sender', async () => {
-    const Sender = await bre.ethers.getContractFactory('Sender');
-    sender = await Sender.deploy();
+  before('deploy Test contract', async () => {
+    const Test = await bre.ethers.getContractFactory('Test');
+    test = await Test.deploy();
   });
 
-  before('deploy receiver', async () => {
-    const Receiver = await bre.ethers.getContractFactory('Receiver');
-    receiver = await Receiver.deploy();
-  });
-
-  before('connect sender and receiver', async () => {
-    await sender.setReceiver(receiver.address);
-  });
-
-  it('should have connected the contracts', async function() {
-    expect(await sender.getReceiver()).to.equal(receiver.address);
-  });
-
-  describe('when registering data to be sent', () => {
+  describe('when registering the data to be sent', () => {
     let timestamps;
     let amounts;
 
@@ -40,15 +27,12 @@ describe('Test 1', function() {
     before('simulate and register data', async () => {
       simulateData();
 
-      const tx1 = await sender.setTimestamps(timestamps);
-      await tx1.wait();
-
-      const tx2 = await sender.setAmounts(amounts);
-      await tx2.wait();
+      const tx = await test.setData(timestamps, amounts);
+      await tx.wait();
     });
 
-    it('sender should have registered timestamps', async () => {
-      const retrievedTimestamps = await sender.getTimestamps();
+    it('should have registered timestamps', async () => {
+      const retrievedTimestamps = await test.getTimestamps();
 
       for (let i = 0; i < timestamps.length; i++) {
         const timestamp = timestamps[i];
@@ -58,8 +42,8 @@ describe('Test 1', function() {
       }
     });
 
-    it('sender should have registered amounts', async () => {
-      const retrievedAmounts = await sender.getAmounts();
+    it('should have registered amounts', async () => {
+      const retrievedAmounts = await test.getAmounts();
 
       for (let i = 0; i < amounts.length; i++) {
         const amount = amounts[i];
@@ -70,17 +54,18 @@ describe('Test 1', function() {
     });
 
     describe('when packing the data', () => {
+      let packedData;
+
       before('pack the data', async () => {
-        const tx = await sender.packData();
+        const tx = await test.packData();
         await tx.wait();
       });
 
       it('packed the data', async () => {
-        const packedData = await sender.getPackedData();
+        packedData = await test.getPackedData();
+        console.log(packedData);
 
         const expectedBytes =
-          4 +       // function selector, 4 bytes
-          32 +      // msg.sender, 32 bytes
           52 * 32 + // timestamps, 52 * 32 bytes
           52 * 32   // amounts, 52 * 32 bytes
 
