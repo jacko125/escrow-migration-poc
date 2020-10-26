@@ -20,36 +20,76 @@ describe('Test 1', function() {
   });
 
   it('should have connected the contracts', async function() {
-    expect(await sender.receiver()).to.equal(receiver.address);
+    expect(await sender.getReceiver()).to.equal(receiver.address);
   });
 
-  describe('when sending data', () => {
-    let data;
+  describe('when registering data to be sent', () => {
+    let timestamps;
+    let amounts;
 
     function simulateData() {
-      const timestamps = [];
-      const amounts = [];
+      timestamps = [];
+      amounts = [];
 
       for (let i = 0; i < 52; i++) {
         timestamps.push(Math.floor(Date.now() / 1000) + i);
         amounts.push(Math.floor(5000 * Math.random()));
       }
-
-      return {
-        timestamps,
-        amounts
-      };
     }
 
-    before('send data', async () => {
-      const { timestamps, amounts } = simulateData();
+    before('simulate and register data', async () => {
+      simulateData();
 
-      const tx = await sender.sendData(timestamps, amounts);
-      await tx.wait();
+      const tx1 = await sender.setTimestamps(timestamps);
+      await tx1.wait();
+
+      const tx2 = await sender.setAmounts(amounts);
+      await tx2.wait();
     });
 
-    it('should have sent data', async () => {
-      // TODO
+    it('sender should have registered timestamps', async () => {
+      const retrievedTimestamps = await sender.getTimestamps();
+
+      for (let i = 0; i < timestamps.length; i++) {
+        const timestamp = timestamps[i];
+        const retrievedTimestamp = retrievedTimestamps[i];
+
+        expect(timestamp).to.equal(retrievedTimestamp);
+      }
+    });
+
+    it('sender should have registered amounts', async () => {
+      const retrievedAmounts = await sender.getAmounts();
+
+      for (let i = 0; i < amounts.length; i++) {
+        const amount = amounts[i];
+        const retrievedAmount = retrievedAmounts[i];
+
+        expect(amount).to.equal(retrievedAmount);
+      }
+    });
+
+    describe('when packing the data', () => {
+      before('pack the data', async () => {
+        const tx = await sender.packData();
+        await tx.wait();
+      });
+
+      it('packed the data', async () => {
+        const packedData = await sender.getPackedData();
+
+        const expectedBytes =
+          4 +       // function selector, 4 bytes
+          32 +      // msg.sender, 32 bytes
+          52 * 32 + // timestamps, 52 * 32 bytes
+          52 * 32   // amounts, 52 * 32 bytes
+
+        const expectedLength =
+          2 +               // 0x
+          2 * expectedBytes // 1 byte = 2 chars
+
+        expect(packedData.length).to.equal(expectedLength);
+      });
     });
   });
 });
